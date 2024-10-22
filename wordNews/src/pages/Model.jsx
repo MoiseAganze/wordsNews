@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Alert, AlertTitle, Box, Grid2, LinearProgress } from "@mui/material";
 import CardNew from "../_components/CardNew";
+
 // import translate from "@vitalets/google-translate-api";
 function Model({ url, cle }) {
   const [datas, setDatas] = useState([]);
@@ -11,34 +12,39 @@ function Model({ url, cle }) {
     const fetchDatas = async () => {
       // const url =
       //   "https://api.worldnewsapi.com/search-news?text=earth+quake&language=en&earliest-publish-date=2024-04-01";
-
       const api_key = "54d301b298e74b77a16109d9741fe312";
       const headers = {
         "x-api-key": api_key,
       };
-      const storage = localStorage.getItem(cle);
-      if (storage) {
-        const tab = JSON.parse(storage);
-        setDatas(tab);
-        setLoading(false);
-      } else {
-        await axios
-          .get(url, { headers: headers })
-          .then(async (res) => {
-            console.log(res);
-            setDatas(res.data.news);
-            const tabjson = JSON.stringify(res.data.news);
-            localStorage.setItem(cle, tabjson);
-            setLoading(false);
-          })
-          .catch((res) => {
-            console.log(res);
+      await axios
+        .get(url, { headers: headers })
+        .then(async (res) => {
+          console.log(res);
+          setDatas(res.data.news);
 
-            setError(true);
-          });
-      }
+          setItemWithExp(cle, res.data.news, 1000 * 60 * 60 * 24);
+          setLoading(false);
+        })
+        .catch((res) => {
+          console.log(res);
+
+          setError(true);
+        });
     };
-    fetchDatas();
+
+    const storage = localStorage.getItem(cle);
+    if (storage) {
+      const item = JSON.parse(storage);
+      const now = new Date();
+      if (now >= item.exp) {
+        fetchDatas();
+      } else {
+        setDatas(item.value);
+        setLoading(false);
+      }
+    } else {
+      fetchDatas();
+    }
   }, []);
   return (
     <>
@@ -66,3 +72,12 @@ function Model({ url, cle }) {
 }
 
 export default Model;
+
+function setItemWithExp(key, value, exp) {
+  const now = new Date();
+  const item = {
+    value: value,
+    exp: now.getTime() + exp,
+  };
+  localStorage.setItem(key, JSON.stringify(item));
+}
